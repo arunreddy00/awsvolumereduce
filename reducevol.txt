@@ -1,0 +1,31 @@
+1.We have an instance A(centos), whose root volume we want to shrink. Let's call this volume VA. We want to shrink VA from 30GB to let's say 10GB
+2.Create a new ec2 instance, B(centos), with the same OS as the instance A. As storage, pick a volume that's the same type as VA, but with a size of 10GB. 
+(or whatever your target size is). So now we have an instance B which uses this new volume (let's call it VB) as a root volume.
+3.Stop the instance you want to resize (A).
+4.Create a snapshot of the volume VA and then create a "General Purpose SSD" volume from that snapshot. This volume we'll call it VASNAP.
+5.Spin a new instance with amazon Linux(Amazon), we'll call this instance C. We will just use this instance to copy the contents of VASNAP to VB. 
+We could probably also use instance A to do these steps.
+6.Attach the following volumes to instance C (Amazon). /dev/xvdf for VB. /dev/xvdg for VASNAP.
+7.Log onto instance C
+8.    Create these new directories:
+ # mkdir /source /target
+9.Format VB's main partition with an ext4 filesystem:
+ # mkfs.xfs /dev/xvdf1 -f
+10.mount /dev/xvdf1 /target
+11.mount /dev/xvdg1 /source
+12.rsync -vaxSHAX /source/ /target
+13.cd /target
+14.blkid
+ # sed -i -e 's/source's UUID/target's UUID/g' etc/fstab
+ # sed -i -e 's/source's UUID/target's UUID/g' boot/grub2/grub.cfg
+ # sed -i -e 's/source's UUID/target's UUID/g' boot/grub/grub.conf 
+ # sed -i -e 's/source's UUID/target's UUID/g' boot/grub/menu.lst
+15.exit
+16.umount /target
+--------------------------------------
+Back in AWS Console: Dettach VB from instance C, and also dettach VA from A.
+Attach the new sized volume (VB) to the instance as: "/dev/sda1".
+
+
+***imp:#df -h 
+       volume size should be same as xvdf and xvdf1
